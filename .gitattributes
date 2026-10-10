@@ -2,40 +2,16 @@
 # .gitattributes (repository root)
 # ==============================================================================
 #
-# The native libraries and the licence text beside each of them, under
-# src/CodeBrix.Audio.FlacWriter/runtimes/<rid>/native/, are packed into the NuGet
-# package exactly as they are on disk. They must be byte-identical on every
-# runtime identifier and on every checkout, whichever operating system did the
-# checkout and whichever one runs `dotnet pack`. With core.autocrlf=true (the
-# Git for Windows default) and no rule here, a Windows checkout rewrote the
-# LICENSE-Flac.txt copies with CRLF line endings, so a
-# package built on Windows shipped different licence bytes for the Linux and
-# Android RIDs than one built on Linux. -text switches every conversion off.
-#
-# flac-native-tools/.gitattributes protects the SOURCES of that text
-# (licenses/LICENSE-Flac.txt, flac/COPYING.Xiph) the same way; this rule
-# protects the adopted copies that ship.
-#
-# The binaries are marked explicitly too, so no diff or merge driver ever
-# treats them as text.
+# ORDER MATTERS: git applies the LAST matching line, so the general rules come
+# first and the package-specific rules for the shipped natives come last.
 # ==============================================================================
 
-src/CodeBrix.Audio.FlacWriter/runtimes/**                       -text
-src/CodeBrix.Audio.FlacWriter/runtimes/**/*.dll                 binary
-src/CodeBrix.Audio.FlacWriter/runtimes/**/*.so                  binary
-src/CodeBrix.Audio.FlacWriter/runtimes/**/*.dylib               binary
-
-# The committed pre-strip twins (flac-native-tools/unstripped/<rid>/).
-flac-native-tools/unstripped/**/*.so                      binary
-flac-native-tools/unstripped/**/*.dylib                   binary
-flac-native-tools/unstripped/**/*.pdb                     binary
-
 # ------------------------------------------------------------------------------
-# Everything else: LF on every platform. A Windows checkout with
-# core.autocrlf=true would otherwise rewrite every text file to CRLF, and the
-# first solution open / `dotnet test` there misbehaves (byte-compared fixtures,
-# shell scripts, vendored upstream sources). The committed blobs are LF; this
-# only stops a checkout from changing them.
+# Everything: LF on every platform. A Windows checkout with core.autocrlf=true
+# would otherwise rewrite every text file to CRLF, and the first solution open /
+# `dotnet test` there misbehaves (byte-compared fixtures, shell scripts, vendored
+# upstream sources). The committed blobs are LF; this only stops a checkout from
+# changing them.
 # ------------------------------------------------------------------------------
 * text=auto eol=lf
 
@@ -58,3 +34,35 @@ flac-native-tools/unstripped/**/*.pdb                     binary
 *.flac  binary
 *.ogg   binary
 *.opus  binary
+
+# ------------------------------------------------------------------------------
+# The shipped natives and the licence text beside them.
+#
+# The native libraries and the licence text beside each of them, under
+# src/CodeBrix.Audio.FlacWriter/runtimes/<rid>/native/, are packed into the NuGet
+# package exactly as they are on disk. They must be byte-identical on every
+# runtime identifier and on every checkout, whichever operating system did the
+# checkout and whichever one runs `dotnet pack`. With core.autocrlf=true (the
+# Git for Windows default) and no rule here, a Windows checkout rewrote the
+# LICENSE-Flac.txt copies with CRLF line endings, so a package built on Windows
+# shipped different licence bytes for the Linux and Android RIDs than one built
+# on Linux. -text switches every conversion off - stronger than the
+# text=auto eol=lf above, which would still normalise them. These lines must
+# stay BELOW the "*" rule, or that rule overrides them.
+#
+# flac-native-tools/.gitattributes protects the SOURCES of that text
+# (licenses/LICENSE-Flac.txt, flac/COPYING.Xiph) the same way; this rule
+# protects the adopted copies that ship.
+#
+# The binaries are marked explicitly too, so no diff or merge driver ever
+# treats them as text.
+# ------------------------------------------------------------------------------
+src/CodeBrix.Audio.FlacWriter/runtimes/**                       -text
+src/CodeBrix.Audio.FlacWriter/runtimes/**/*.dll                 binary
+src/CodeBrix.Audio.FlacWriter/runtimes/**/*.so                  binary
+src/CodeBrix.Audio.FlacWriter/runtimes/**/*.dylib               binary
+
+# The committed pre-strip twins (flac-native-tools/unstripped/<rid>/).
+flac-native-tools/unstripped/**/*.so                      binary
+flac-native-tools/unstripped/**/*.dylib                   binary
+flac-native-tools/unstripped/**/*.pdb                     binary
