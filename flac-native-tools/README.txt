@@ -67,9 +67,9 @@ WHAT BUILDS WHERE
   linux-riscv64  linux/build.sh riscv64          ditto (+ qemu binfmt)   built here
   android-arm64  android/build.sh arm64          Linux/macOS + NDK 30    built here
   android-x64    android/build.sh x64            Linux/macOS + NDK 30    built here
-  win-x64        windows/build-win-x64.ps1       x64 Windows + VS C++    NOT YET BUILT (Jeremy)
-  win-arm64      windows/build-win-arm64.ps1     ARM64 Windows (or x64,  NOT YET BUILT (Jeremy)
-                                                 cross; smoke test unrun)
+  win-x64        windows/build-win-x64.ps1       x64 Windows + VS C++    built (Jeremy's x64 box)
+  win-arm64      windows/build-win-arm64.ps1     ARM64 Windows (or x64,  cross-built there;
+                                                 cross; smoke test unrun) smoke test UNRUN
   osx-arm64      macos/build-osx-arm64.sh        Apple Silicon Mac       NOT YET BUILT (Jeremy)
   osx-x64        macos/build-osx-x64.sh          Intel Mac, or Apple     NOT YET BUILT (Jeremy)
                                                  Silicon + Rosetta 2
@@ -80,9 +80,14 @@ CodeBrix.Audio.Vorbis's - which Jeremy ran successfully that day (Windows 11 +
 Visual Studio 2026; Apple Silicon Mac + Xcode 27, osx-x64 under Rosetta 2) -
 changed only where FLAC differs (one vendored tree built through flac's own
 CMake, one licence file, 23 exports, the smoke test built by the same CMake run).
-They have NOT been run for FLAC yet. They gate themselves exactly as the Vorbis
-ones do; if one breaks, fix it in the script and record it in
-BUILD-PROVENANCE.txt.
+The Windows scripts first ran for FLAC on 2026-10-10 on Jeremy's x64 Windows 11
+machine and ran unchanged; the one fix was in smoke-test.c (a local variable
+named `small`, which a Windows header #defines - see BUILD-PROVENANCE.txt).
+win-arm64 was cross-built there with -AdoptCrossBuild, so its smoke test is
+still UNRUN - finish it on an ARM64 Windows device (Surface Pro X) as
+build-win-arm64.ps1's header describes. The macOS scripts have NOT been run for
+FLAC yet. They all gate themselves exactly as the Vorbis ones do; if one breaks,
+fix it in the script and record it in BUILD-PROVENANCE.txt.
 
 HOW TO REBUILD
 --------------------------------------------------------------------------------

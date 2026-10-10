@@ -48,6 +48,7 @@
 #include "FLAC/stream_decoder.h"
 
 #if defined(_WIN32)
+#  define WIN32_LEAN_AND_MEAN   /* keeps rpcndr.h out: it #defines small, near, far, hyper ... (MSVC first run, 2026-10-10) */
 #  include <windows.h>
 typedef HMODULE lib_handle;
 static lib_handle lib_open(const char* path) { return LoadLibraryA(path); }
@@ -540,7 +541,7 @@ int main(int argc, char** argv)
 
     /* ---- 7. error paths ---- */
     {
-        uint8_t small[8];
+        uint8_t tiny[8];
         int64_t off; int32_t len, cnt; int64_t first;
         int32_t bad[4] = { 0, 0, 40000, 0 };
 
@@ -563,8 +564,8 @@ int main(int argc, char** argv)
         CHECK(p_write_int32(NULL, bad, 1) == CBF_E_INVALID_ARGUMENT, "write_int32(NULL)");
         CHECK(p_finish(NULL) == CBF_E_INVALID_ARGUMENT, "finish(NULL)");
         CHECK(p_pending_output(NULL) < 0, "pending_output(NULL) < 0");
-        CHECK(p_read_output(NULL, small, 8) < 0, "read_output(NULL) < 0");
-        CHECK(p_header_length(NULL) < 0 && p_read_header(NULL, small, 8) < 0, "header_length/read_header(NULL) < 0");
+        CHECK(p_read_output(NULL, tiny, 8) < 0, "read_output(NULL) < 0");
+        CHECK(p_header_length(NULL) < 0 && p_read_header(NULL, tiny, 8) < 0, "header_length/read_header(NULL) < 0");
         CHECK(p_patch_count(NULL) < 0 && p_pending_packets(NULL) < 0 && p_samples_written(NULL) < 0, "counts(NULL) < 0");
         CHECK(p_last_state(NULL) != NULL, "last_state(NULL) is a valid string");
         p_destroy(NULL);
@@ -578,14 +579,14 @@ int main(int argc, char** argv)
         CHECK(p_set_packet_mode(e, 2) == CBF_E_INVALID_ARGUMENT, "set_packet_mode(2) = CBF_E_INVALID_ARGUMENT");
         CHECK(p_write_int32(e, bad, 1) == CBF_E_INVALID_STATE, "write before start = CBF_E_INVALID_STATE");
         CHECK(p_finish(e) == CBF_E_INVALID_STATE, "finish before start = CBF_E_INVALID_STATE");
-        CHECK(p_read_header(e, small, 8) == CBF_E_INVALID_STATE, "read_header before start = CBF_E_INVALID_STATE");
+        CHECK(p_read_header(e, tiny, 8) == CBF_E_INVALID_STATE, "read_header before start = CBF_E_INVALID_STATE");
         CHECK(p_start(e) == CBF_OK, "errors: start");
         CHECK(p_start(e) == CBF_E_INVALID_STATE, "start twice = CBF_E_INVALID_STATE");
         CHECK(p_add_comment(e, "A", "B") == CBF_E_INVALID_STATE, "add_comment after start = CBF_E_INVALID_STATE");
         CHECK(p_set_padding(e, 16) == CBF_E_INVALID_STATE, "set_padding after start = CBF_E_INVALID_STATE");
         CHECK(p_set_seek_table(e, 0) == CBF_E_INVALID_STATE, "set_seek_table after start = CBF_E_INVALID_STATE");
         CHECK(p_set_packet_mode(e, 0) == CBF_E_INVALID_STATE, "set_packet_mode after start = CBF_E_INVALID_STATE");
-        CHECK(p_read_header(e, small, (int32_t)sizeof small) == CBF_E_INVALID_ARGUMENT, "read_header into a too-small buffer = CBF_E_INVALID_ARGUMENT");
+        CHECK(p_read_header(e, tiny, (int32_t)sizeof tiny) == CBF_E_INVALID_ARGUMENT, "read_header into a too-small buffer = CBF_E_INVALID_ARGUMENT");
         CHECK(p_write_int32(e, bad, 2) == CBF_E_INVALID_ARGUMENT, "16-bit sample 40000 = CBF_E_INVALID_ARGUMENT");
         printf("      last_state: %s\n", p_last_state(e));
         CHECK(p_last_state(e)[0] != '\0', "last_state names the out-of-range sample");
@@ -596,7 +597,7 @@ int main(int argc, char** argv)
         CHECK(p_samples_written(e) == 1, "samples_written counts only accepted frames");
         CHECK(p_patch_info(e, 0, &off, &len) == CBF_E_INVALID_ARGUMENT, "patch_info before finish (index 0) = CBF_E_INVALID_ARGUMENT");
         CHECK(p_packet_info(e, &len, &first, &cnt) == CBF_E_INVALID_STATE, "packet_info in stream mode = CBF_E_INVALID_STATE");
-        CHECK(p_read_output(e, small, -1) == CBF_E_INVALID_ARGUMENT, "read_output(capacity=-1) = CBF_E_INVALID_ARGUMENT");
+        CHECK(p_read_output(e, tiny, -1) == CBF_E_INVALID_ARGUMENT, "read_output(capacity=-1) = CBF_E_INVALID_ARGUMENT");
         p_destroy(e); e = NULL;
         printf("ok:   destroy of a started, unfinished encoder\n");
 

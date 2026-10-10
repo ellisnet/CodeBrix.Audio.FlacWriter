@@ -249,31 +249,130 @@ Windows (the two win-* entries)
                     x64 host (-AdoptCrossBuild to adopt with the smoke test unrun).
   Scripts         : copies of CodeBrix.Audio.Vorbis's Windows scripts (which ran
                     successfully on Jeremy's x64 Windows 11 machine on
-                    2026-10-10, /PDBALTPATH fix included), adapted to FLAC. NOT
-                    YET RUN for FLAC.
-  Expected        : x64 - libFLAC's SSE/AVX2 files (AVX2 ones with /arch:AVX2,
-                    runtime-dispatched, as every MSVC build of libFLAC);
-                    ARM64 - portable C (MSVC defines _M_ARM64, not __aarch64__,
-                    so flac's CPU check leaves FLAC__CPU_ARM64 unset). Both
-                    recorded in BUILD-INFO.txt ("libFLAC config").
+                    2026-10-10, /PDBALTPATH fix included), adapted to FLAC.
+  Build host      : Jeremy's x64 desktop - Windows 11 Pro 10.0.26300 (AMD64),
+                    Visual Studio Professional 2026 18.10.3 [18.10.12224.181] at
+                    C:\Program Files\Microsoft Visual Studio\18\Professional,
+                    MSVC toolset 14.51.36231 (cl 19.51.36260), Windows SDK
+                    10.0.26100.0, cmake 4.4.3 (Kitware, on PATH; generator
+                    "Visual Studio 18 2026"), PowerShell 7.6.6. Scripts run as
+                    pwsh -NoProfile -ExecutionPolicy Bypass -File <script>.
+  First run       : 2026-10-10, both RIDs. The scripts themselves ran UNCHANGED.
+                    ONE source fix was needed, in ../smoke-test.c - not in the
+                    shipped library, which had already compiled and linked
+                    cleanly when the smoke test failed to compile:
+                      uint8_t small[8]  ->  uint8_t tiny[8]   (and its 5 uses)
+                    <windows.h> pulls in rpcndr.h, which #defines `small` as
+                    `char` (likewise near, far, hyper ...), so MSVC saw
+                    "uint8_t char[8]" (error C2628). The variable was renamed,
+                    and the smoke test now #defines WIN32_LEAN_AND_MEAN before
+                    <windows.h>, which keeps rpcndr.h out altogether. Both
+                    changes sit in the #if defined(_WIN32) block or are a local
+                    rename, so the Linux / Android / macOS smoke tests are
+                    unaffected (same 118 checks). Both RIDs were then rebuilt
+                    from scratch; the records below are from those runs.
+  Build warnings  : per RID, 6 x MSBuild MSB8029 ("Intermediate directory ...
+                    under the Temporary directory") because -BuildRoot defaults
+                    to %TEMP% - every build is a clean build, so it is moot.
+                    Zero compiler (C....) or linker (LNK....) warnings in the
+                    shim, the smoke test AND libFLAC.
+  libFLAC config  : x64 - FLAC__CPU_X86_64=1 FLAC__HAS_X86INTRIN=1 WITH_ASM=ON
+                    WITH_AVX=ON: the SSE2/SSSE3/SSE4.1/AVX2/FMA paths, the AVX2
+                    and FMA files compiled with /arch:AVX2, runtime-dispatched
+                    via cpuid, as every MSVC build of libFLAC.
+                    ARM64 - NO FLAC__CPU_* at all: flac's CheckCPUArch probe
+                    tests __aarch64__ / __arm64__, which MSVC does not define
+                    (it defines _M_ARM64), so win-arm64 libFLAC is its PORTABLE
+                    C (no NEON). The cache there also says FLAC__HAS_NEONINTRIN=1
+                    and FLAC__HAS_X86INTRIN=1: those are header-presence probes
+                    (arm_neon.h and intrin.h both ship in the MSVC ARM64
+                    toolchain) and are inert without a FLAC__CPU_* define - every
+                    intrinsics file is guarded by one.
+                    Both RIDs: BUILD_SHARED_LIBS=OFF ENABLE_64_BIT_WORDS=ON
+                    ENABLE_MULTITHREADING=OFF WITH_OGG=OFF. HAVE_LROUND is off on
+                    MSVC (flac's probe links against "m", which MSVC has not), so
+                    libFLAC's own lround fallback is used - as in every MSVC
+                    build of libFLAC. libFLAC's own MSVC flags apply on top of
+                    ours: /O2 /Ob2 /Oi /Ot /Oy, /fp:fast, /wd4267 /wd4996,
+                    _CRT_SECURE_NO_WARNINGS _USE_MATH_DEFINES.
+  PE facts        : PE32+, linker 14.51, DllCharacteristics 0x0160
+                    (HIGH_ENTROPY_VA, DYNAMIC_BASE, NX_COMPAT), /GS on every
+                    object, not Authenticode-signed; the pdb is referenced by
+                    bare file name (CodeView RSDS record "codebrix_flac.pdb"),
+                    so no build-machine path is in the DLL.
   Gate            : PE machine (header + dumpbin), exact exports, dependents
                     KERNEL32.dll only (no VC runtime), licence (committed file ==
                     flac\COPYING.Xiph), LoadLibrary smoke test by full path.
 
 ================================================================================
-win-x64                                     NOT YET BUILT - Jeremy builds on Windows
+win-x64                                                           BUILT + PASSED
 ================================================================================
-  cd flac-native-tools\windows ; .\build-win-x64.ps1
-  then replace this block from output\win-x64\BUILD-INFO.txt (+ the PDB's RSDS
-  GUID into unstripped\README.txt).
+Built            : 2026-10-10 22:31:26 UTC (34 s)
+Built by         : windows\build-win-x64.ps1 (route: native, x64 host)
+Build host       : the x64 desktop above (vcvarsall.bat x64)
+Visual Studio/cl : Visual Studio Professional 2026 18.10.3 / cl 19.51.36260 for x64
+cmake            : 4.4.3, generator "Visual Studio 18 2026" -A x64,
+                   CMAKE_GENERATOR_INSTANCE = the instance above
+libFLAC config   : FLAC__CPU_X86_64=1 FLAC__HAS_X86INTRIN=1 WITH_ASM=ON WITH_AVX=ON
+                   ENABLE_64_BIT_WORDS=ON ENABLE_MULTITHREADING=OFF WITH_OGG=OFF
+                   (SSE2/SSSE3/SSE4.1/AVX2/FMA paths, runtime-dispatched via cpuid)
+File             : codebrix_flac.dll - PE32+ x64 (machine 0x8664), linker 14.51,
+                   OS/subsystem version 6.00, timestamp 0x6ACABCDE
+Size             : 355840 bytes
+SHA256           : b89ea562936ed720a8b7aa1796327ae6fc7828df8396aa7fbf4664c5b0831e97
+PDB              : codebrix_flac.pdb, 5156864 bytes -> unstripped/win-x64/codebrix_flac.pdb
+                   sha256 beba3557f0af619241e7b3d3e4547e7ed1f60f232aebc147afcbd4c397f20ada
+                   RSDS GUID {8F098C49-041F-48F3-A6FD-02DEB3FFA3D8} age 1
+Exports          : exactly the 23 codebrix_flac_* functions
+Dependents       : KERNEL32.dll (static CRT; no Visual C++ Redistributable)
+Smoke test       : PASSED on the build host (118 checks, SMOKE TEST PASSED, exit 0;
+                   output/win-x64/smoke-test.exe, sha256 0fff9e3d17b2a3d2...ad6711)
+Managed proof    : dotnet test (xUnit v3, 140 tests, 0 skipped - ffmpeg and ffprobe
+                   were on PATH, so the independent-decoder checks ran) passed on
+                   the build host against this exact file, loaded through the
+                   library's own resolver from runtimes/win-x64/native/, 2026-10-10
 
 ================================================================================
-win-arm64                                   NOT YET BUILT - Jeremy builds on Windows
+win-arm64                       BUILT (cross) - STATIC GATE PASSED, SMOKE UNRUN
 ================================================================================
-  cd flac-native-tools\windows ; .\build-win-arm64.ps1 [-AdoptCrossBuild]
-  then replace this block from output\win-arm64\BUILD-INFO.txt. A cross build
-  leaves the smoke test UNRUN until output\win-arm64\smoke-test.exe +
-  codebrix_flac.dll are run on an ARM64 Windows device (Surface Pro X).
+Built            : 2026-10-10 22:32:01 UTC (32 s)
+Built by         : windows\build-win-arm64.ps1 -AdoptCrossBuild
+                   (route: CrossFromX64 - x64 host, vcvarsall.bat x64_arm64, -A ARM64)
+Build host       : the x64 desktop above
+Visual Studio/cl : Visual Studio Professional 2026 18.10.3 / cl 19.51.36260 for ARM64
+                   (HostX64\ARM64 cross compiler)
+cmake            : 4.4.3, generator "Visual Studio 18 2026" -A ARM64,
+                   CMAKE_GENERATOR_INSTANCE = the instance above
+libFLAC config   : no FLAC__CPU_* - PORTABLE C, no NEON (see "libFLAC config" above);
+                   WITH_ASM=ON ENABLE_64_BIT_WORDS=ON ENABLE_MULTITHREADING=OFF
+                   WITH_OGG=OFF; FLAC__HAS_NEONINTRIN=1 FLAC__HAS_X86INTRIN=1 are
+                   header probes only, inert here
+File             : codebrix_flac.dll - PE32+ ARM64 (machine 0xAA64), linker 14.51,
+                   OS/subsystem version 6.02, timestamp 0x6ACABCFF
+Size             : 281088 bytes
+SHA256           : a7027bd4b1c9f35e90081665d7786e21acea7c63af8a1952346f731893d467e7
+PDB              : codebrix_flac.pdb, 4935680 bytes -> unstripped/win-arm64/codebrix_flac.pdb
+                   sha256 7899c5f1ed46bf58d0dfd2e8ad1788fbd7af7e4861bd9d3f543a87d4de9574e1
+                   RSDS GUID {3A9BCA01-50F6-4679-B267-1DEF16CB9A66} age 1
+Exports          : exactly the 23 codebrix_flac_* functions
+Dependents       : KERNEL32.dll (static CRT; no Visual C++ Redistributable)
+Smoke test       : NOT RUN - an x64 Windows host cannot execute ARM64 code. The
+                   static checks (machine type both ways, exact exports,
+                   dependents, licence) all passed; adopted with -AdoptCrossBuild
+                   on purpose, because the binary is needed before the device is.
+                   Gate status in BUILD-INFO.txt: INCOMPLETE.
+To finish the gate: on an ARM64 Windows device (Jeremy's Surface Pro X), with
+                   output/win-arm64/codebrix_flac.dll (sha256 above) and
+                   output/win-arm64/smoke-test.exe (the ARM64 codebrix_flac_smoke
+                   from this run, sha256 5b514b377ca1d537...7f45ef6; it carries
+                   its own static libFLAC decoder and needs nothing else) copied
+                   into one folder, run
+                       smoke-test.exe <full path>\codebrix_flac.dll
+                   and expect "SMOKE TEST PASSED", exit 0 (118 checks). Then
+                   replace this line with the device, date and result. The
+                   managed test suite run on that device (dotnet test on an
+                   ARM64 .NET 10 SDK) is the equivalent of the win-x64
+                   "Managed proof" line.
 
 macOS (the two osx-* entries)
 --------------------------------------------------------------------------------

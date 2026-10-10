@@ -4,8 +4,11 @@
 #
 #   Written on Linux on 2026-10-10 as a copy of CodeBrix.Audio.Vorbis's script of the same name
 #   (run successfully by Jeremy that day on his x64 Windows 11 machine), adapted to FLAC.
-#   NOT YET RUN. If something breaks, fix it IN THE SCRIPT (or build-common.ps1) and record it in
-#   ..\BUILD-PROVENANCE.txt.
+#   FIRST RUN for FLAC the same day, on the same machine (Visual Studio Professional 2026 18.10.3,
+#   cl 19.51, cmake 4.4.3): built, passed the whole gate including the 118-check smoke test, and
+#   was adopted, with this script unchanged. The one first-run fix was in ..\smoke-test.c (see
+#   build-common.ps1's header and ..\BUILD-PROVENANCE.txt). If something breaks on another
+#   machine, fix it IN THE SCRIPT (or build-common.ps1) and record it there.
 #
 # USAGE (from any PowerShell prompt - the script sets up the compiler environment itself):
 #

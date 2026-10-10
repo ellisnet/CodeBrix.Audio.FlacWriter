@@ -42,4 +42,8 @@ STORED SO FAR (build-ids verified equal to the shipped twins by the gates, 2026-
   android-arm64  ab66ff73828fa32794fc9e1678cec1141842bfcf
   android-x64    bd397d49eb08a6c83fdddfb246718703d4f783cf
 
-  win-x64, win-arm64, osx-x64, osx-arm64: not yet built (Jeremy's machines).
+  (PDB GUIDs, from the shipped DLLs' RSDS records, 2026-10-10)
+  win-x64        {8F098C49-041F-48F3-A6FD-02DEB3FFA3D8} age 1
+  win-arm64      {3A9BCA01-50F6-4679-B267-1DEF16CB9A66} age 1
+
+  osx-x64, osx-arm64: not yet built (Jeremy's Mac).
