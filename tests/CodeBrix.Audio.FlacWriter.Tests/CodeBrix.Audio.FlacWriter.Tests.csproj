@@ -1,0 +1,37 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\CodeBrix.Audio.FlacWriter\CodeBrix.Audio.FlacWriter.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.10.1" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="4.0.1">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="xunit.v3" Version="4.0.2" />
+    <PackageReference Include="SilverAssertions.ApacheLicenseForever" Version="1.0.248.1071" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- The same Core pin as the library csproj (it supplies the managed FLAC DECODER the round-trip tests use); raise both together. -->
+    <PackageReference Include="CodeBrix.Audio.Core.MitLicenseForever" Version="1.0.271.1165" />
+  </ItemGroup>
+
+  <!--
+    The library's committed native libraries, copied to the test output under runtimes/<rid>/native/ - the
+    layout the library's DllImportResolver probes - so the tests exercise exactly what the package ships.
+    Remove-then-Include so the explicit metadata does not collide with the SDK's default None glob. A glob, so
+    a platform with no native committed yet never breaks the build.
+  -->
+  <ItemGroup>
+    <None Remove="..\..\src\CodeBrix.Audio.FlacWriter\runtimes\**\*" />
+    <None Include="..\..\src\CodeBrix.Audio.FlacWriter\runtimes\**\*" Link="runtimes\%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+</Project>

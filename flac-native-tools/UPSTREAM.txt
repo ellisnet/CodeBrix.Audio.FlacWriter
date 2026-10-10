@@ -1,0 +1,110 @@
+================================================================================
+flac-native-tools/flac - VENDORED UPSTREAM SOURCE
+================================================================================
+
+WHAT THIS FOLDER IS
+--------------------------------------------------------------------------------
+An unmodified copy of the official Xiph.Org release tarball of FLAC (the Free
+Lossless Audio Codec). It is the ONLY upstream source the codebrix_flac native
+library in this repository is ever built from. No build step in this repository
+clones, downloads, or otherwise fetches FLAC (or anything else) at build time -
+see README.txt for the rule this exists to satisfy.
+
+The release tarball itself is kept, byte for byte as downloaded, in
+upstream-downloads/, so the vendored tree can be re-verified at any time with
+no network.
+
+This file lives BESIDE the tree, not inside it, so that flac/ stays
+byte-identical to its tarball (not even an added file).
+
+UPSTREAM IDENTITY - FLAC
+--------------------------------------------------------------------------------
+Project        : FLAC - Free Lossless Audio Codec (libFLAC reference library)
+Upstream URL   : https://downloads.xiph.org/releases/flac/
+Project home   : https://xiph.org/flac/   (source: https://github.com/xiph/flac)
+Version        : 1.5.0               (configure.ac: AC_INIT([flac],[1.5.0],...);
+                                      CMakeLists.txt: project(FLAC VERSION 1.5.0))
+Tarball        : upstream-downloads/flac-1.5.0.tar.xz   (1078872 bytes)
+SHA-256        : f2c1c76592a82ffff8413ba3c4a1299b6c7ab06c734dee03fd88630485c2b920
+Vendored as    : flac/   (the tarball's flac-1.5.0/ folder, renamed)
+
+The tarball hash was checked on 2026-10-10 to be identical whether downloaded
+from downloads.xiph.org or from the GitHub release assets of xiph/flac.
+
+LICENSING OF THE TARBALL - WHAT IS AND IS NOT BUILT
+--------------------------------------------------------------------------------
+The FLAC distribution mixes four licences (flac/README.md, "License"; every
+source file states its own terms at the top):
+
+  BSD-3-Clause (flac/COPYING.Xiph - "Copyright (C) 2000-2009 Josh Coalson,
+  Copyright (C) 2011-2025 Xiph.Org Foundation"):
+      the codec libraries - libFLAC (src/libFLAC, include/FLAC) and libFLAC++
+      (src/libFLAC++, include/FLAC++) - and the include/share headers libFLAC
+      uses (alloc.h, compat.h, endswap.h, macros.h, private.h, safe_str.h,
+      win_utf8_io.h) plus src/share/win_utf8_io/win_utf8_io.c.
+
+  GPL (flac/COPYING.GPL):
+      the `flac` and `metaflac` command-line programs (src/flac, src/metaflac),
+      and parts of src/share (grabbag, utf8, replaygain_analysis;
+      src/share/README: "the only FLAC tools that do [link them] are GPL'ed").
+
+  LGPL (flac/COPYING.LGPL):
+      src/share/getopt (copied from vorbistools; used only by the programs).
+
+  GNU FDL (flac/COPYING.FDL):
+      the documentation (doc/, man/).
+
+ONLY the BSD-3 part is compiled into codebrix_flac: src/libFLAC/*.c (the files
+listed by src/libFLAC/CMakeLists.txt, minus the Ogg ones - WITH_OGG=OFF) with
+their headers, and on Windows src/share/win_utf8_io/win_utf8_io.c (BSD-3,
+listed by libFLAC's own CMake target). libFLAC++, the flac and metaflac
+programs, src/share/{grabbag,utf8,getopt,replaygain_*}, the examples, the test
+programs and the documentation are vendored (they are part of the tarball) but
+are NEVER compiled and NEVER shipped. shim/CMakeLists.txt enforces this
+(BUILD_CXXLIBS / BUILD_PROGRAMS / BUILD_EXAMPLES / BUILD_TESTING / BUILD_DOCS
+OFF, and add_subdirectory(... EXCLUDE_FROM_ALL), so the src/share helper
+targets flac's CMake always defines are never built).
+
+Two public-domain notices sit in compiled libFLAC files (src/libFLAC/md5.c +
+include/private/md5.h: Colin Plumb's MD5, "no copyright is claimed"; and
+include/private/bitmath.h: a CC0 de Bruijn table by Timothy B. Terriberry).
+Neither carries a condition to reproduce it; no other copyright holder appears
+in the compiled set. See licenses/compose-license-flac.sh, which re-checks
+this on every build.
+
+Shipped as     : LICENSE-Flac.txt beside every native binary (a verbatim copy
+                 of flac/COPYING.Xiph, produced and checked by
+                 licenses/compose-license-flac.sh)
+
+Used here      : src/libFLAC/ + include/FLAC/ through flac's own CMake
+                 (shim/CMakeLists.txt add_subdirectory). config.h is generated
+                 into the BUILD tree from flac/config.cmake.h.in, as flac's
+                 CMake always does - never into flac/.
+
+NOT MODIFIED
+--------------------------------------------------------------------------------
+No file in flac/ has been modified, renamed, reformatted, added or deleted, and
+none ever should be. Verified on 2026-10-10 with the check below (no
+differences, 847 files in flac/).
+
+If a future build ever needs a change to this source, it goes in
+patches/*.patch and is applied by the build scripts into a scratch copy at build
+time, never into this folder. As of 2026-10-10 there are no patches.
+
+Note: the repository-root .gitignore ignores some names that occur in the
+tarball (85 test/metaflac-test-files/*.meta files, via *.meta); flac-native-tools/
+.gitignore re-includes everything so the committed tree stays complete.
+
+VERIFYING THE SNAPSHOT AGAINST ITS TARBALL (no network needed)
+--------------------------------------------------------------------------------
+    cd flac-native-tools
+    sha256sum upstream-downloads/flac-1.5.0.tar.xz   # compare with the hash above
+    mkdir /tmp/xiph-verify
+    tar -xJf upstream-downloads/flac-1.5.0.tar.xz -C /tmp/xiph-verify
+    diff -r /tmp/xiph-verify/flac-1.5.0 flac           # expect no output
+
+Re-checking the tarball against upstream (optional, needs network - a
+convenience for a human, never a build step):
+
+    https://downloads.xiph.org/releases/flac/flac-1.5.0.tar.xz
+    https://github.com/xiph/flac/releases/tag/1.5.0

@@ -1,0 +1,318 @@
+================================================================================
+flac-native-tools/BUILD-PROVENANCE.txt
+what was actually built, when, by what, and with what result
+================================================================================
+
+WHY THIS FILE EXISTS
+--------------------------------------------------------------------------------
+A binary in a package is anonymous. This file is how anyone later can tell which
+native library came from which source, which toolchain and which build machine.
+Every time a binary is adopted into ../src/CodeBrix.Audio.FlacWriter/runtimes/
+<rid>/native/, its section here is updated from that build's
+output/<rid>/BUILD-INFO.txt.
+
+Common to every entry below
+--------------------------------------------------------------------------------
+  Source          : flac/ (flac-1.5.0) - the unmodified Xiph release tarball
+                    (upstream-downloads/flac-1.5.0.tar.xz; sha256
+                    f2c1c76592a8...b920; see UPSTREAM.txt), plus
+                    shim/codebrix_flac.c implementing the fixed contract
+                    shim/codebrix_flac.h (API version 1)
+  Compiled        : libFLAC only (src/libFLAC/*.c minus the Ogg files; on Windows
+                    also src/share/win_utf8_io/win_utf8_io.c, which libFLAC's own
+                    target lists - BSD-3), through flac's OWN CMake
+                    (shim/CMakeLists.txt: add_subdirectory(flac EXCLUDE_FROM_ALL))
+                    with BUILD_SHARED_LIBS / BUILD_CXXLIBS / BUILD_PROGRAMS /
+                    BUILD_EXAMPLES / BUILD_TESTING / BUILD_DOCS / BUILD_UTILS /
+                    INSTALL_* / WITH_OGG / ENABLE_MULTITHREADING all OFF. Static
+                    libFLAC is linked into ONE shared library per RID. NOT built:
+                    libFLAC++, the GPL flac + metaflac programs, src/share/
+                    {grabbag,utf8,getopt,replaygain_*}, examples, tests, docs.
+                    libFLAC's own defaults otherwise apply: WITH_ASM=ON (x86
+                    SSE/AVX2 intrinsics with RUNTIME CPU detection; NEON on GCC/
+                    clang arm64), 64-bit bit-writer words, _FORTIFY_SOURCE=2 and
+                    -fstack-protector-strong where the compiler has them,
+                    -fassociative-math family for libFLAC's float code (its own
+                    flags). Each RID's libFLAC configuration is recorded below.
+  Visibility      : -fvisibility=hidden for every object, libFLAC's included
+                    (static libFLAC => FLAC__NO_DLL => FLAC_API is empty) +
+                    --exclude-libs,ALL on Linux/Android; exports are EXACTLY the
+                    23 functions of codebrix_flac.h - checked by every gate
+                    (missing AND extra)
+  Patches applied : NONE. patches/ is empty.
+  Shipped names   : libcodebrix_flac.so / codebrix_flac.dll /
+                    libcodebrix_flac.dylib - unversioned (SONAME/install name
+                    unversioned too), because DllImport("codebrix_flac") probes
+                    exactly those names
+  Licence beside  : LICENSE-Flac.txt = licenses/LICENSE-Flac.txt = flac/
+  every binary      COPYING.Xiph VERBATIM (BSD-3; md5 of the file
+                    78a131b2ea50675d245d280ccc34f8b6), written and
+                    checked by licenses/compose-license-flac.sh. No third-party
+                    notice needs composing in: the compiled sources name only Josh
+                    Coalson and the Xiph.Org Foundation; the two other notices in
+                    them are public-domain dedications (md5.c, bitmath.h) with no
+                    reproduction condition. --check re-runs that survey on every
+                    bash build. flac-native-tools/.gitattributes marks the source
+                    texts (flac/** and licenses/LICENSE-Flac.txt) -text.
+  Smoke test      : ../smoke-test.c, built for the TARGET by the same CMake run
+                    (codebrix_flac_smoke - it links its own static libFLAC, used
+                    ONLY as an independent decoder) and run against the STAGED
+                    (stripped) file, loaded by path: api_version == 1, libFLAC
+                    1.5.0 version string; STREAM mode stereo 44.1 kHz 16-bit
+                    level 5, 1 s of 440/660 Hz in 8 uneven chunk sizes, two
+                    comments (one non-ASCII UTF-8): "fLaC", placeholder STREAMINFO
+                    before finish, 3 patches all inside the header, patched total
+                    44100 + non-zero MD5, read_header after finish == patched
+                    header, libFLAC's decoder decodes the patched (MD5 checked)
+                    AND unpatched stream sample-exactly and finds the comments +
+                    the "reference libFLAC 1.5.0 20250211" vendor; PACKET mode
+                    (verify=1, seek table every 4096, 512 B padding): only the
+                    header reaches the output, 11 packets with first_sample ==
+                    running sum summing to 44100, header patched at finish,
+                    header + packets decode sample-exactly; the same options in
+                    stream mode give byte-for-byte header + packets; 24-bit mono
+                    48 kHz at levels 0 and 8 (verify=1) sample-exact; an empty
+                    stream; and the contract's error paths (null handles, 12 bad
+                    create arguments, every setter after start, seek table without
+                    an estimate, illegal tag / non-UTF-8 value, write/finish
+                    before start and after finish, an out-of-range sample rejected
+                    with the encoder still usable, bad patch index, short buffers,
+                    a non-subset block size refused with CBF_E_UNSUPPORTED +
+                    "FLAC__STREAM_ENCODER_INIT_STATUS_NOT_STREAMABLE"). 118 checks.
+
+Linux (the three linux-* entries)
+--------------------------------------------------------------------------------
+  Route           : linux/build.sh <arch> -> container-build.sh inside
+                    codebrix-flac-build-<arch> (Containerfile.<arch>: the
+                    digest-pinned manylinux base + a toolchain PROBE; NOTHING is
+                    installed, so the image build also ran with --network none),
+                    run with --network none, --pull=never
+  Build host      : Dell Precision 7770, LMDE 7, x86_64, podman 5.4.2; arm64 and
+                    riscv64 under qemu-user emulation
+  cmake options   : -G "Unix Makefiles" -DCMAKE_BUILD_TYPE=Release
+                    -DCBF_BUILD_SMOKE_TEST=ON; CMAKE_C_FLAGS="-g
+                    -ffile-prefix-map=<src>=flac-native-tools
+                    -ffile-prefix-map=<build>=build"; the shim's CMakeLists adds
+                    -fPIC -fvisibility=hidden and links with --no-undefined
+                    --exclude-libs,ALL -z noexecstack --build-id=sha1; then
+                    strip --strip-unneeded
+  Reproducibility : linux-x64 was built twice on 2026-10-10 (19:15 UTC, the
+                    second with ADOPT=0); the stripped AND unstripped files were
+                    byte-identical both times. (android-arm64 likewise, below.)
+  Gate            : ELF class/machine, SONAME, no RPATH/RUNPATH/TEXTREL,
+                    GNU_STACK RW, exact export set, NEEDED system-only + ldd -r,
+                    glibc floor CHECKED, build-id equal stripped/unstripped,
+                    licence file exact, smoke test
+  Warnings        : 0 on every Linux RID (shim, smoke test AND libFLAC, which
+                    compiles with its own -Wall -Wextra -Wshadow ... set)
+
+================================================================================
+linux-x64                                                         BUILT + PASSED
+================================================================================
+Built            : 2026-10-10 19:15:37 UTC
+Built by         : linux/build.sh -> container-build.sh (native x86_64 host)
+Network          : DISABLED during this build (interfaces: lo)
+Derived image    : codebrix-flac-build-x86_64
+Base image       : quay.io/pypa/manylinux_2_28_x86_64@sha256:a61875a2f84cab7df8de222ff12cabc08ff86eb4ad402ac90ba7bdaed9600cca
+Container OS     : AlmaLinux 8.10 (Cerulean Leopard), ldd (GNU libc) 2.28
+Compiler         : cc (GCC) 14.2.1 20250110 (Red Hat 14.2.1-11)
+Linker           : GNU ld version 2.41-4.el8_10.1
+cmake / make     : cmake version 4.4.0 / GNU Make 4.2.1 (the base image's own)
+libFLAC config   : FLAC__CPU_X86_64=1 FLAC__HAS_X86INTRIN=1 WITH_ASM=ON WITH_AVX=ON
+                   (SSE2/SSSE3/SSE4.1/AVX2/FMA paths, runtime-dispatched via cpuid)
+File             : libcodebrix_flac.so (SONAME libcodebrix_flac.so)
+Build-id         : 45242156ff9f12f1a050cb574d6e06e343e8cdc7
+Size (stripped)  : 354632 bytes
+Size (unstripped): 1781152 bytes -> unstripped/linux-x64/libcodebrix_flac.so
+SHA256           : 9bf338f94d1cc2abe3a0b5a93ef982a720a71c5fb42efa0d1a4e93ae06258d0e
+SHA256 unstripped: f0f164e81a19f9d2aa9380791c09a9d9291dfe221dde838c7e3a61c5e7817523
+glibc floor      : 2.14 (allowed <= 2.28)
+Dynamic deps     : libc.so.6 libm.so.6
+Smoke test       : PASSED (in the container; 118 checks)
+
+================================================================================
+linux-arm64                                                       BUILT + PASSED
+================================================================================
+Built            : 2026-10-10 19:15:51 UTC
+Built by         : linux/build.sh -> container-build.sh (qemu-aarch64 emulation)
+Network          : DISABLED during this build (interfaces: lo)
+Derived image    : codebrix-flac-build-aarch64
+Base image       : quay.io/pypa/manylinux_2_28_aarch64@sha256:162c81dfd3efc710732a571717d3c916a6945ebf279e879ddee3243af96fe46f
+Container OS     : AlmaLinux 8.10 (Cerulean Leopard), ldd (GNU libc) 2.28
+Compiler         : cc (GCC) 14.2.1 20250110 (Red Hat 14.2.1-11)
+Linker           : GNU ld version 2.41-4.el8_10.1
+cmake / make     : cmake version 4.4.0 / GNU Make 4.2.1
+libFLAC config   : FLAC__CPU_ARM64=1 FLAC__HAS_NEONINTRIN=1 FLAC__HAS_A64NEONINTRIN=1
+                   (NEON LPC paths)
+File             : libcodebrix_flac.so (SONAME libcodebrix_flac.so)
+Build-id         : afb2d112637d32532445082e6ea7be98a84bf037
+Size (stripped)  : 330096 bytes
+Size (unstripped): 1567776 bytes -> unstripped/linux-arm64/libcodebrix_flac.so
+SHA256           : f5c75f2a70fef7082e716683e4e79343b7cf0a5a617ca2461310a4c8b43b8649
+SHA256 unstripped: 7b14101e6cd882d50524b771024814d1d8965511b0d69495cdafefde783b16fa
+glibc floor      : 2.17 (allowed <= 2.28)
+Dynamic deps     : ld-linux-aarch64.so.1 libc.so.6 libm.so.6
+                   (ld-linux-aarch64.so.1: the stack-protector guard, __stack_chk_guard,
+                   lives in the dynamic loader on glibc/aarch64 - libFLAC is built with
+                   -fstack-protector-strong; allowed, as it is for every glibc system)
+Smoke test       : PASSED (in the container, emulated; 118 checks)
+
+================================================================================
+linux-riscv64                                                     BUILT + PASSED
+================================================================================
+Built            : 2026-10-10 19:17:26 UTC
+Built by         : linux/build.sh -> container-build.sh (qemu-riscv64 emulation)
+Network          : DISABLED during this build (interfaces: lo)
+Derived image    : codebrix-flac-build-riscv64
+Base image       : quay.io/pypa/manylinux_2_39_riscv64@sha256:04b3acc69a6cebb10ac1252587d202acce6445d91c783d3f92229bb2b2483069
+Container OS     : Rocky Linux 10.2 (Red Quartz), ldd (GNU libc) 2.39
+Compiler         : cc (GCC) 14.3.1 20251022 (Red Hat 14.3.1-4)
+Linker           : GNU ld version 2.41-63.el10
+cmake / make     : cmake version 4.4.0 / GNU Make 4.4.1
+libFLAC config   : portable C (no x86 or NEON intrinsics exist for this architecture)
+File             : libcodebrix_flac.so (SONAME libcodebrix_flac.so)
+Build-id         : 7307b4f234156157e80427f4e6aaee5cc320db5c
+Size (stripped)  : 195576 bytes
+Size (unstripped): 962608 bytes -> unstripped/linux-riscv64/libcodebrix_flac.so
+SHA256           : bf0f0b05c6c6e84405b42462ff48114b2883ce55072a8c9d4f19f1801ec7d9ed
+SHA256 unstripped: 5afc48cade1a3ecb9d7434f6df7e3515d994f7732bfaa07df34e5a441aaf1120
+glibc floor      : 2.33 (allowed <= 2.39)
+Dynamic deps     : ld-linux-riscv64-lp64d.so.1 libc.so.6 libm.so.6
+Smoke test       : PASSED (in the container, emulated; 118 checks)
+
+Android (the two android-* entries)
+--------------------------------------------------------------------------------
+  Route           : android/build.sh on the Linux laptop (host cmake 3.31.6 +
+                    GNU Make 4.4.1; NDK 30.0.16248370 android.toolchain.cmake,
+                    ANDROID_PLATFORM=android-33, -DCBF_BUILD_SMOKE_TEST=ON)
+  Flags           : CMAKE_C_FLAGS="-g -ffile-prefix-map=... -fdebug-compilation-
+                    dir=build" on top of the NDK's Release flags; linker
+                    -Wl,-z,max-page-size=16384 -Wl,-z,common-page-size=16384
+                    -Wl,--build-id=sha1 (+ the shim's --no-undefined
+                    --exclude-libs,ALL -z noexecstack); the smoke-test executable
+                    also links with 16 KB pages; llvm-strip --strip-unneeded
+  Gate            : android/layout-check.c (ABI static asserts, cross-compiled
+                    for the ABI), ELF64/machine, every PT_LOAD 16 KB aligned, no
+                    W+X segment, Android API note == 33, NEEDED libc/libm/libdl
+                    only, no TEXTREL/RPATH/RUNPATH, SONAME, exact exports (on the
+                    stripped AND unstripped file), build-id equal, licence exact,
+                    and - with DEVICE_ARM64 / DEVICE_X64 set - the smoke test run
+                    on a real device over adb (/data/local/tmp/codebrix-flac-smoke,
+                    removed after)
+  Reproducibility : android-arm64 was built three times on 2026-10-10; the
+                    shipped file was byte-identical every time.
+  Warnings        : 0 for both ABIs (shim, smoke test and libFLAC)
+
+================================================================================
+android-arm64                                                     BUILT + PASSED
+================================================================================
+Built            : 2026-10-10 19:20:59 UTC
+ABI / API        : arm64-v8a / 33
+Compiler         : Android (16134705, +pgo, +bolt, +lto, +mlgo, based on r574158c) clang version 21.0.0
+libFLAC config   : FLAC__CPU_ARM64=1 FLAC__HAS_NEONINTRIN=1 FLAC__HAS_A64NEONINTRIN=1 (NEON)
+File             : libcodebrix_flac.so (SONAME libcodebrix_flac.so)
+Build-id         : ab66ff73828fa32794fc9e1678cec1141842bfcf
+Size (stripped)  : 165784 bytes
+Size (unstripped): 883920 bytes -> unstripped/android-arm64/libcodebrix_flac.so
+SHA256           : fbe1e445e248796b4b42fc5ec11caf7a1b62ec89d4b1ac14788cd3e6bca0bc0e
+SHA256 unstripped: 1081b9187ef401fe5237dad1c4a23a35c6fb269e0331e38a91dcc03d0dfed0a1
+PT_LOAD align    : 0x4000 x4 (16 KB page-size ready)
+NEEDED           : libc.so libdl.so libm.so
+Device smoke test: PASSED on 98271FFBA0048D (Pixel 4 XL, arm64-v8a), 2026-10-10 (118 checks)
+
+================================================================================
+android-x64                                                       BUILT + PASSED
+================================================================================
+Built            : 2026-10-10 19:20:43 UTC
+ABI / API        : x86_64 / 33
+Compiler         : Android (16134705, +pgo, +bolt, +lto, +mlgo, based on r574158c) clang version 21.0.0
+libFLAC config   : FLAC__CPU_X86_64=1 FLAC__HAS_X86INTRIN=1 WITH_AVX=ON (runtime-dispatched)
+File             : libcodebrix_flac.so (SONAME libcodebrix_flac.so)
+Build-id         : bd397d49eb08a6c83fdddfb246718703d4f783cf
+Size (stripped)  : 222112 bytes
+Size (unstripped): 909952 bytes -> unstripped/android-x64/libcodebrix_flac.so
+SHA256           : 1a1c8ec79ebfbe10fbe71a6d9e3c2be760a8bf8c337e17eae9bcc393129e9c40
+SHA256 unstripped: 42ee1e447c97ea831eb9e9d8853d7d78a4dbff518f3db5b87db1260cead6e43c
+PT_LOAD align    : 0x4000 x4 (16 KB page-size ready)
+NEEDED           : libc.so libdl.so libm.so
+Device smoke test: PASSED on 192.168.86.225:5555 (HP laptop, model 87FE, x86_64), 2026-10-10 (118 checks)
+
+Windows (the two win-* entries)
+--------------------------------------------------------------------------------
+  Route           : windows/build-win-x64.ps1 / build-win-arm64.ps1 (dot-source
+                    build-common.ps1): MSVC through CMake's Visual Studio
+                    generator, -A x64 / -A ARM64, -DCBF_BUILD_SMOKE_TEST=ON,
+                    CMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded (static CRT, every
+                    target), /O2 /Ob2 /DNDEBUG /Z7, link /INCREMENTAL:NO /DEBUG
+                    /OPT:REF /OPT:ICF /PDBALTPATH:codebrix_flac.pdb. win-arm64
+                    route Auto: native on an ARM64 host, cross (x64_arm64) on an
+                    x64 host (-AdoptCrossBuild to adopt with the smoke test unrun).
+  Scripts         : copies of CodeBrix.Audio.Vorbis's Windows scripts (which ran
+                    successfully on Jeremy's x64 Windows 11 machine on
+                    2026-10-10, /PDBALTPATH fix included), adapted to FLAC. NOT
+                    YET RUN for FLAC.
+  Expected        : x64 - libFLAC's SSE/AVX2 files (AVX2 ones with /arch:AVX2,
+                    runtime-dispatched, as every MSVC build of libFLAC);
+                    ARM64 - portable C (MSVC defines _M_ARM64, not __aarch64__,
+                    so flac's CPU check leaves FLAC__CPU_ARM64 unset). Both
+                    recorded in BUILD-INFO.txt ("libFLAC config").
+  Gate            : PE machine (header + dumpbin), exact exports, dependents
+                    KERNEL32.dll only (no VC runtime), licence (committed file ==
+                    flac\COPYING.Xiph), LoadLibrary smoke test by full path.
+
+================================================================================
+win-x64                                     NOT YET BUILT - Jeremy builds on Windows
+================================================================================
+  cd flac-native-tools\windows ; .\build-win-x64.ps1
+  then replace this block from output\win-x64\BUILD-INFO.txt (+ the PDB's RSDS
+  GUID into unstripped\README.txt).
+
+================================================================================
+win-arm64                                   NOT YET BUILT - Jeremy builds on Windows
+================================================================================
+  cd flac-native-tools\windows ; .\build-win-arm64.ps1 [-AdoptCrossBuild]
+  then replace this block from output\win-arm64\BUILD-INFO.txt. A cross build
+  leaves the smoke test UNRUN until output\win-arm64\smoke-test.exe +
+  codebrix_flac.dll are run on an ARM64 Windows device (Surface Pro X).
+
+macOS (the two osx-* entries)
+--------------------------------------------------------------------------------
+  Route           : macos/build-osx-arm64.sh / build-osx-x64.sh (source
+                    build-common.sh): Apple clang via CMake "Unix Makefiles",
+                    -DCBF_BUILD_SMOKE_TEST=ON, CMAKE_OSX_ARCHITECTURES=
+                    <arm64|x86_64>, deployment target 11.0 (arm64) / 10.14 (x64)
+                    - the CodeBrix.Sdl3 / Vorbis floors; -g, dsymutil, strip -x,
+                    then ad-hoc codesign; thin dylibs, never universal.
+  Scripts         : copies of CodeBrix.Audio.Vorbis's macOS scripts (which ran
+                    UNCHANGED and successfully on Jeremy's Apple Silicon Mac on
+                    2026-10-10; osx-x64 verified under Rosetta 2), adapted to
+                    FLAC. NOT YET RUN for FLAC.
+  Expected        : the Vorbis run's reproducibility finding applies here too:
+                    ld derives LC_UUID from output that includes the N_OSO stabs'
+                    .o timestamps, so two builds of the same source ship the same
+                    code under different LC_UUIDs (and signatures) - the sha256
+                    identifies ONE build, not the source. See CodeBrix.Audio.
+                    Vorbis's BUILD-PROVENANCE.txt, macOS section.
+  Gate            : thin Mach-O of the right arch (file + lipo), exact exports
+                    (nm -gU), install name @rpath/libcodebrix_flac.dylib,
+                    system-only dependencies, no LC_RPATH, deployment target
+                    CHECKED + 0 -Wunguarded-availability, valid ad-hoc signature,
+                    licence exact, LC_UUID equal stripped/unstripped, smoke test.
+
+================================================================================
+osx-arm64                                     NOT YET BUILT - Jeremy builds on macOS
+================================================================================
+  cd flac-native-tools/macos && ./build-osx-arm64.sh
+  then replace this block from output/osx-arm64/BUILD-INFO.txt.
+
+================================================================================
+osx-x64                                       NOT YET BUILT - Jeremy builds on macOS
+================================================================================
+  cd flac-native-tools/macos && ./build-osx-x64.sh     (Rosetta 2 to verify on Apple Silicon)
+  then replace this block from output/osx-x64/BUILD-INFO.txt.
+
+Host build (NOT shipped)
+--------------------------------------------------------------------------------
+  output/host/libcodebrix_flac.so - build-host.sh with the laptop's own cmake
+  3.31.6 + gcc 14.2.0 (Debian), for running the managed tests on a dev box. Never
+  copied into src/; its glibc floor is the dev box's.

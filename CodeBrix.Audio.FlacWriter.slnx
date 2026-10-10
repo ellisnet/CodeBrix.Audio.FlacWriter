@@ -1,0 +1,21 @@
+<Solution>
+  <Folder Name="/Solution Items/">
+    <File Path=".gitignore" />
+    <File Path="AGENT-README.txt" />
+    <File Path="EXTRAS-README.txt" />
+    <File Path="global.json" />
+    <File Path="icon-codebrix-128.png" />
+    <File Path="LICENSE" />
+    <File Path="MAINTAINER-README.txt" />
+    <File Path="README-INDEX.txt" />
+    <File Path="README.md" />
+    <File Path="THIRD-PARTY-NOTICES.txt" />
+  </Folder>
+  <Folder Name="/Samples/">
+    <Project Path="samples/FlacDiagnostics/FlacDiagnostics.csproj" />
+  </Folder>
+  <Folder Name="/Tests/">
+    <Project Path="tests/CodeBrix.Audio.FlacWriter.Tests/CodeBrix.Audio.FlacWriter.Tests.csproj" />
+  </Folder>
+  <Project Path="src/CodeBrix.Audio.FlacWriter/CodeBrix.Audio.FlacWriter.csproj" />
+</Solution>

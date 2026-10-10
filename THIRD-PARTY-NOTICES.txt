@@ -1,0 +1,130 @@
+THIRD-PARTY SOFTWARE NOTICES AND INFORMATION
+
+CodeBrix.Audio.FlacWriter is a lossless FLAC encoder for .NET: a managed
+wrapper together with the native codebrix_flac libraries it P/Invokes into.
+Two distinct things in this repository come from other people, and both are
+covered below:
+
+  1. THE VENDORED SOURCE. flac-native-tools/flac/ is an unmodified copy of the
+     Xiph.Org release tarball of FLAC, committed to this repository so the
+     native libraries can be rebuilt from it alone. The tarball itself is kept
+     in flac-native-tools/upstream-downloads/, and its identity (URL, version,
+     SHA-256) is recorded in flac-native-tools/UPSTREAM.txt.
+
+  2. THE SHIPPED BINARIES. The package's runtimes/<rid>/native/ folders contain
+     libcodebrix_flac.so / libcodebrix_flac.dylib / codebrix_flac.dll, each of
+     which statically links libFLAC compiled from exactly that source,
+     together with a small C shim (flac-native-tools/shim/) written for this
+     repository.
+
+libFLAC is licensed under the BSD 3-Clause licence, reproduced in full below,
+which is compatible with this repository's own BSD 3-Clause licence.
+
+HOW BSD-3-CLAUSE CLAUSE 2 IS SATISFIED
+    Clause 2 requires a binary distribution to reproduce the copyright notice
+    and the licence "in the documentation and/or other materials provided with
+    the distribution". Every native build copies FLAC's COPYING.Xiph file as
+    LICENSE-Flac.txt beside the binary in runtimes/<rid>/native/, so the
+    licence text physically travels inside the NuGet package next to every
+    native library, on every platform - in addition to this file.
+
+WHAT IS BUILT, AND WHAT IS NOT
+    The FLAC tarball mixes four licences. ONLY its BSD-3-Clause part is
+    compiled into the shipped binaries: libFLAC (src/libFLAC and include/FLAC)
+    with the BSD-3-Clause helper headers it uses from include/share, and - on
+    Windows only - src/share/win_utf8_io/win_utf8_io.c, which is also
+    BSD-3-Clause and part of libFLAC's own build target. libFLAC is built
+    without Ogg support.
+
+    THE GPL PROGRAMS IN THE TARBALL ARE NOT BUILT. The `flac` and `metaflac`
+    command-line programs (src/flac, src/metaflac) are licensed under the GNU
+    GPL (COPYING.GPL); the helper code in src/share that only those programs
+    use (grabbag, utf8, replaygain_analysis, replaygain_synthesis, getopt) is
+    under the GNU GPL or LGPL (COPYING.GPL, COPYING.LGPL); the documentation
+    (doc/, man/) is under the GNU FDL (COPYING.FDL). None of these is
+    compiled, linked or shipped: they are present in this repository only
+    because the release tarball is vendored unmodified. libFLAC++, the
+    examples and the test suite are not built either.
+
+WHAT WAS MODIFIED
+    NOTHING. No file in flac-native-tools/flac/ has been edited, renamed,
+    reformatted, added or deleted. If a build ever needs a source change it is
+    applied to a scratch copy at build time from a patch kept outside the
+    vendored tree, and this section must say so.
+
+OTHER NOTICES INSIDE THE COMPILED SOURCE
+    src/libFLAC/md5.c (the MD5 used for the STREAMINFO signature) states that
+    it is in the public domain ("written by Colin Plumb in 1993, no copyright
+    is claimed"), and src/libFLAC/include/private/bitmath.h contains one
+    routine marked "(C) Timothy B. Terriberry ... CC0 (Public domain)".
+    Neither places any condition on redistribution; they are recorded here
+    for completeness. No compiled libFLAC file carries any other notice that
+    must be preserved.
+
+WHAT IS NOT THIRD-PARTY
+    The C shim (flac-native-tools/shim/), every build script, the managed
+    library and the tests are original work of this repository. The test
+    suite uses no recordings: every test signal is generated in code.
+
+Jeremy Ellis and contributors license the CodeBrix.Audio.FlacWriter project to
+you under the terms set forth in the LICENSE file, which is located at the root
+of this repository.
+
+If you have any questions about any third-party code referenced here, or if you
+believe that any third-party code has been included in
+CodeBrix.Audio.FlacWriter in error, please open a new issue at:
+https://github.com/ellisnet/CodeBrix.Audio.FlacWriter/issues
+
+================================================================================
+
+1. libFLAC
+
+    Project:     FLAC - Free Lossless Audio Codec (the libFLAC reference
+                 library)
+    Home:        https://xiph.org/flac/
+    Source:      https://downloads.xiph.org/releases/flac/
+                 (repository: https://github.com/xiph/flac)
+    Version:     1.5.0 (release tarball flac-1.5.0.tar.xz)
+    Copyright:   Copyright (C) 2000-2009  Josh Coalson
+                 Copyright (C) 2011-2025  Xiph.Org Foundation
+    License:     BSD-3-Clause (the libFLAC part of the distribution; see WHAT
+                 IS BUILT, AND WHAT IS NOT above for the rest of the tarball)
+    Vendored as: flac-native-tools/flac/
+    Shipped as:  statically linked into every runtimes/<rid>/native/ binary;
+                 licence text beside it as LICENSE-Flac.txt
+
+    Full license text (flac-native-tools/flac/COPYING.Xiph, verbatim):
+
+    Copyright (C) 2000-2009  Josh Coalson
+    Copyright (C) 2011-2025  Xiph.Org Foundation
+
+    Redistribution and use in source and binary forms, with or without
+    modification, are permitted provided that the following conditions
+    are met:
+
+    - Redistributions of source code must retain the above copyright
+    notice, this list of conditions and the following disclaimer.
+
+    - Redistributions in binary form must reproduce the above copyright
+    notice, this list of conditions and the following disclaimer in the
+    documentation and/or other materials provided with the distribution.
+
+    - Neither the name of the Xiph.Org Foundation nor the names of its
+    contributors may be used to endorse or promote products derived from
+    this software without specific prior written permission.
+
+    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+    ``AS IS'' AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+    A PARTICULAR PURPOSE ARE DISCLAIMED.  IN NO EVENT SHALL THE FOUNDATION OR
+    CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+    EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+    PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+    PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+    LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+    NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+    SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+================================================================================
+
+END OF THIRD-PARTY SOFTWARE NOTICES AND INFORMATION

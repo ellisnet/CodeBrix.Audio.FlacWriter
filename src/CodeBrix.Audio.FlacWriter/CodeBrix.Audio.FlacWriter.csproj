@@ -1,0 +1,111 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <AssemblyName>CodeBrix.Audio.FlacWriter</AssemblyName>
+    <RootNamespace>CodeBrix.Audio.FlacWriter</RootNamespace>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <!--
+      Keep the committed native libraries out of the SDK's default item globs. Without this they arrive as
+      None items with no metadata AS WELL AS through the explicit item below, and the metadata-less copies
+      win, so nothing reaches the package.
+    -->
+    <DefaultItemExcludes>$(DefaultItemExcludes);runtimes\**</DefaultItemExcludes>
+  </PropertyGroup>
+
+  <!--
+    Package / assembly version: date-stamped and auto-incrementing.
+
+    Format:  1.<x>.<y>.<z>   (every field is derived from UTC "now")
+
+      1  (major)     Always 1 for this library.
+      x  (minor)     Whole years since $(_VersionBaseYear).
+                     With base 2026: 2026=0, 2027=1, 2028=2, ...
+      y  (build)     Day of year, 1-based inclusive, UTC.
+                     Jan 1 = 1, Feb 1 = 32, Dec 31 = 365 (366 in a leap year).
+      z  (revision)  Minute of day, UTC, range 0 to 1439.
+                     00:00 = 0, 23:59 = 1439.
+
+    The version is always strictly increasing over time:
+      * within a day, z grows;
+      * at a day boundary, y increments and outranks z resetting to 0;
+      * at a (UTC) year boundary, x increments and outranks y and z resetting.
+
+    Notes / caveats:
+      * All fields read from System.DateTime.UtcNow, so a local dev build and a
+        UTC CI build agree on the value. Math.Floor on the minutes keeps z in
+        0..1439 (plain rounding could land on 1440 late in the day).
+      * Because the value depends on the clock, every build produces a NEW
+        version. With GeneratePackageOnBuild=true that means a fresh .nupkg on
+        each build, and two builds in the SAME UTC minute produce the SAME
+        version (so do not publish two packages from within one minute).
+      * This is date-stamp versioning, not SemVer: minor encodes the year and
+        major is pinned to 1, so major/minor do not signal API compatibility.
+      * To re-baseline the minor number, change _VersionBaseYear below.
+  -->
+  <PropertyGroup>
+    <_VersionBaseYear>2026</_VersionBaseYear>
+    <_VersionYears>$([MSBuild]::Subtract($([System.DateTime]::UtcNow.Year), $(_VersionBaseYear)))</_VersionYears>
+    <_VersionDayOfYear>$([System.DateTime]::UtcNow.DayOfYear)</_VersionDayOfYear>
+    <_VersionMinuteOfDay>$([System.Convert]::ToInt32($([System.Math]::Floor($([System.DateTime]::UtcNow.TimeOfDay.TotalMinutes)))))</_VersionMinuteOfDay>
+    <BuildVersion>1.$(_VersionYears).$(_VersionDayOfYear).$(_VersionMinuteOfDay)</BuildVersion>
+    <Version>$(BuildVersion)</Version>
+    <AssemblyVersion>$(BuildVersion)</AssemblyVersion>
+    <FileVersion>$(BuildVersion)</FileVersion>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <PackageId>CodeBrix.Audio.FlacWriter.BsdLicenseForever</PackageId>
+    <Product>CodeBrix.Audio.FlacWriter</Product>
+    <Title>CodeBrix.Audio.FlacWriter</Title>
+    <Authors>Jeremy Ellis</Authors>
+    <Description>Lossless FLAC encoding for CodeBrix.Audio. FlacEncoder turns float or integer samples into a standard .flac stream - 4- to 32-bit samples, compression levels 0 to 8, optional verify-while-encoding, seek table, padding and Vorbis comments, with the stream totals and MD5 filled in when the destination can seek - and FlacPacketEncoder yields one FLAC frame per packet plus the stream header for containers. Built over self-built native libraries shipped in the package for Windows x64 and ARM64, macOS Intel and Apple Silicon, Linux x64, ARM64 and RISC-V 64, and Android 13+ ARM64 and x64. One Register() call lets CodeBrix.Audio write .flac files by file name.</Description>
+    <PackageLicenseExpression>BSD-3-Clause</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/ellisnet/CodeBrix.Audio.FlacWriter</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/ellisnet/CodeBrix.Audio.FlacWriter</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageIcon>icon-codebrix-128.png</PackageIcon>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <Copyright>Copyright (c) 2026 Jeremy Ellis and contributors</Copyright>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
+    <IsPackable>true</IsPackable>
+    <PackageTags>audio;flac;lossless;encoder;encoding;compression;native;CodeBrix</PackageTags>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- The same Core pin as the test project; raise both together. -->
+    <PackageReference Include="CodeBrix.Audio.Core.MitLicenseForever" Version="1.0.271.1165" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\..\icon-codebrix-128.png" Pack="true" PackagePath="" />
+    <None Include="..\..\README.md" Pack="true" PackagePath="" />
+    <None Include="..\..\AGENT-README.txt" Pack="true" PackagePath="" />
+    <None Include="..\..\THIRD-PARTY-NOTICES.txt" Pack="true" PackagePath="" />
+    <None Include="..\..\LICENSE" Pack="true" PackagePath="" />
+  </ItemGroup>
+
+  <!--
+    The native codebrix_flac libraries, each beside LICENSE-Flac.txt (libFLAC's Xiph COPYING text,
+    BSD-3-Clause clause 2). They are built by flac-native-tools/ and committed under
+    runtimes/<rid>/native/; nothing here builds them. They are kept out of the SDK's default item globs above
+    and named once here. See MAINTAINER-README.txt.
+  -->
+  <ItemGroup>
+    <_FlacNativeLibrary Include="runtimes\**\*" />
+
+    <!--
+      Packed into the standard NuGet runtimes layout, so NuGet gives an application the one native for the
+      platform it is building for.
+
+      The package path is the BARE "runtimes/" folder. NuGet appends the item's own recursive directory and
+      file name to a package path that names a folder, so spelling %(RecursiveDir) out here as well produces
+      runtimes/linux-x64/native/linux-x64/native/libcodebrix_flac.so. It is the one piece of this csproj
+      worth checking the package for after any change - see MAINTAINER-README.txt.
+    -->
+    <None Include="@(_FlacNativeLibrary)" Pack="true" PackagePath="runtimes\" />
+  </ItemGroup>
+
+</Project>

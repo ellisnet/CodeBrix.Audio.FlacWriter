@@ -1,0 +1,11 @@
+# The vendored FLAC tree must stay byte-identical to upstream-downloads/flac-1.5.0.tar.xz on every
+# commit and every checkout. The repository root sets "* text=auto eol=lf", which would normalise
+# the three CRLF files of the tarball (flac/test/cuesheets/good.00{2,4,5}*.cue - CRLF on purpose,
+# they test DOS-format cue sheets) at `git add`. -text switches every conversion off for the tree.
+flac/** -text
+# The licence text shipped beside every native binary must be byte-identical on all nine RIDs,
+# whichever OS checked the repository out and ran the build. Never convert its line endings.
+licenses/LICENSE-Flac.txt -text
+# Shell scripts must keep LF to run (Windows checkouts included).
+*.sh text eol=lf
+*.env text eol=lf

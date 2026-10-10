@@ -1,0 +1,57 @@
+# =============================================================================================
+# Containerfile.riscv64 - the codebrix_flac build machine for linux-riscv64
+# =============================================================================================
+#
+# WHAT THIS IS
+#   The digest-pinned manylinux base image (Rocky Linux 10, gcc 14, glibc 2.39) with a toolchain PROBE on top.
+#   It installs NOTHING: the base image already has everything libFLAC + the shim
+#   need (a C compiler, cmake, GNU make, binutils, file). This step only proves that, fails
+#   early and obviously if a tool is ever missing, and writes the versions to
+#   /usr/local/share/codebrix-flac-build/toolchain.txt, which every BUILD-INFO.txt copies.
+#
+#   Because nothing is installed, build.sh builds this image with --network none too: no step
+#   of this tooling uses the network. (CodeBrix.Sdl3's equivalent installs cmake/ninja/-devel
+#   headers and is the one network step there; this build has no such need.)
+#
+#   build.sh builds this image the first time it is needed and reuses it after that.
+#   To rebuild deliberately:   FORCE_IMAGE_REBUILD=1 ./build.sh riscv64
+#
+# The default BASE_IMAGE below exists only so a hand-run 
+# works; build.sh always passes --build-arg BASE_IMAGE from pins.env.
+# =============================================================================================
+
+ARG BASE_IMAGE=quay.io/pypa/manylinux_2_39_riscv64@sha256:04b3acc69a6cebb10ac1252587d202acce6445d91c783d3f92229bb2b2483069
+FROM ${BASE_IMAGE}
+
+LABEL org.opencontainers.image.title="codebrix-flac-build-riscv64"
+LABEL org.opencontainers.image.description="codebrix_flac native build machine: manylinux base + toolchain probe (nothing installed)"
+LABEL org.opencontainers.image.source="CodeBrix.Audio.FlacWriter/flac-native-tools/linux/Containerfile.riscv64"
+
+# ---------------------------------------------------------------------------------------------
+# Prove the toolchain. A missing tool fails the IMAGE build, here, where the message is obvious.
+# The probe compiles and RUNS a C11 program that uses libm, as libFLAC does.
+# ---------------------------------------------------------------------------------------------
+RUN set -eu; \
+    for t in cc cmake make file nm objdump readelf strip ldd sha256sum; do \
+        command -v "$t" > /dev/null 2>&1 || { echo "ERROR: $t is missing from the base image." >&2; exit 1; }; \
+    done; \
+    mkdir -p /usr/local/share/codebrix-flac-build; \
+    out=/usr/local/share/codebrix-flac-build/toolchain.txt; \
+    { \
+      echo "os      : $(grep -m1 PRETTY_NAME /etc/os-release | cut -d= -f2- | tr -d '\"')"; \
+      echo "machine : $(uname -m)"; \
+      echo "cc      : $(cc --version | sed -n 1p)"; \
+      echo "ld      : $(ld --version | sed -n 1p)"; \
+      echo "glibc   : $(ldd --version | sed -n 1p)"; \
+      echo "cmake   : $(cmake --version | sed -n 1p)"; \
+      echo "make    : $(make --version | sed -n 1p)"; \
+      echo "patch   : $(command -v patch > /dev/null 2>&1 && patch --version | sed -n 1p || echo 'not present (only needed if patches/ has a .patch)')"; \
+    } > "$out"; \
+    cat "$out"; \
+    printf '#include <math.h>\n#include <stdio.h>\nint main(void){ volatile double x = 2.0; printf("c11 + libm: %%ld %%.3f\\n", (long)__STDC_VERSION__, sqrt(x)); return 0; }\n' > /tmp/probe.c; \
+    cc -std=c11 -o /tmp/probe /tmp/probe.c -lm; \
+    /tmp/probe; \
+    rm -f /tmp/probe /tmp/probe.c; \
+    echo "toolchain: ok"
+
+WORKDIR /work

@@ -1,0 +1,52 @@
+# ==============================================================================
+# flac-native-tools/.gitignore
+# ==============================================================================
+#
+# LINE 1 IS LOAD-BEARING - DO NOT DELETE IT.
+#
+# The repository-root .gitignore is the standard Visual Studio / .NET one. It
+# ignores names that also occur inside the vendored FLAC source tree and in
+# this tooling, for example:
+#
+#     *.meta             -> flac/test/metaflac-test-files/*.meta (85 files that
+#                           are part of the upstream release tarball)
+#     *.env              -> linux/pins.env
+#     [Dd]ebug/  [Rr]elease/  [Oo]ut/  [Ll]og/ ...
+#
+# Without the "!*" below, such files would be silently left out of every
+# commit, and the vendored snapshot would no longer match its tarball in
+# upstream-downloads/. A nested .gitignore takes precedence over the ones above
+# it, so re-including everything here and then re-ignoring only what this
+# folder genuinely produces is the correct fix - and it keeps the root
+# .gitignore untouched. (Same arrangement as CodeBrix.Audio.Vorbis's
+# vorbis-native-tools and CodeBrix.Sdl3's sdl3-native-tools.)
+#
+# Verify at any time with:
+#     git check-ignore -v flac-native-tools/flac/test/metaflac-test-files/case47-expect.meta
+#     git check-ignore -v flac-native-tools/linux/pins.env
+#         -> should print nothing (i.e. the file is NOT ignored)
+# ==============================================================================
+
+# Re-include everything under this folder, overriding the root .gitignore.
+!*
+!*/
+
+# --- what this folder really does produce, and must not commit ---------------
+
+# Built native libraries, unstripped copies, smoke-test binaries, BUILD-INFO,
+# the host build for the managed tests. ONE tree, shared by every platform
+# build, so all RIDs land side by side.
+#
+# THE LEADING SLASH MATTERS: without it the pattern would match ANY directory
+# named "output" at any depth. The trailing /* (not a bare /output/) leaves the
+# directory visible so the README negation below can work.
+/output/*
+!/output/README.txt
+
+# Local scratch that the scripts may leave behind.
+*.tmp
+*.log
+build-scratch/
+
+# Finder droppings (the "!*" above overrides any inherited .DS_Store rule).
+.DS_Store

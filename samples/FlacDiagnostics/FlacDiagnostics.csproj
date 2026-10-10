@@ -1,0 +1,33 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0-android36.1</TargetFramework>
+    <SupportedOSPlatformVersion>33.0</SupportedOSPlatformVersion>
+    <OutputType>Exe</OutputType>
+    <ApplicationId>com.codebrix.audio.flacwriter.diagnostics</ApplicationId>
+    <ApplicationVersion>1</ApplicationVersion>
+    <ApplicationDisplayVersion>1.0</ApplicationDisplayVersion>
+    <RuntimeIdentifiers>android-arm64;android-x64</RuntimeIdentifiers>
+  </PropertyGroup>
+  <!-- SDK / JDK defaults for this machine, the same rule as CodeBrix.Audio.Android's diagnostics app: used
+       only when nothing else set them; override with -p:AndroidSdkDirectory=... -p:JavaSdkDirectory=...
+       or ANDROID_HOME / JAVA_HOME. -->
+  <PropertyGroup>
+    <_CodeBrixUserAndroidSdk>$([System.Environment]::GetFolderPath(SpecialFolder.UserProfile))/Android/Sdk</_CodeBrixUserAndroidSdk>
+    <AndroidSdkDirectory Condition="'$(AndroidSdkDirectory)' == '' and Exists('$(_CodeBrixUserAndroidSdk)')">$(_CodeBrixUserAndroidSdk)</AndroidSdkDirectory>
+    <JavaSdkDirectory Condition="'$(JavaSdkDirectory)' == '' and Exists('/usr/lib/jvm/java-21-openjdk-amd64')">/usr/lib/jvm/java-21-openjdk-amd64</JavaSdkDirectory>
+  </PropertyGroup>
+  <ItemGroup>
+    <!-- The library under test, from source. -->
+    <ProjectReference Include="..\..\src\CodeBrix.Audio.FlacWriter\CodeBrix.Audio.FlacWriter.csproj" />
+    <!-- The ONLY audio natives package: device output and the playback path. -->
+    <PackageReference Include="CodeBrix.Audio.Android.ApacheLicenseForever" Version="1.0.271.1201" />
+  </ItemGroup>
+  <!-- A ProjectReference does NOT carry the library's runtimes/<rid>/native/ files into the APK (they are pack-only
+       items in the library csproj; only a PackageReference to the .nupkg delivers them). Name the two Android
+       natives here so the build packs them into lib/<abi>/. An application that consumes the PACKAGE needs none
+       of this. -->
+  <ItemGroup>
+    <AndroidNativeLibrary Include="..\..\src\CodeBrix.Audio.FlacWriter\runtimes\android-arm64\native\libcodebrix_flac.so" Abi="arm64-v8a" />
+    <AndroidNativeLibrary Include="..\..\src\CodeBrix.Audio.FlacWriter\runtimes\android-x64\native\libcodebrix_flac.so" Abi="x86_64" />
+  </ItemGroup>
+</Project>
