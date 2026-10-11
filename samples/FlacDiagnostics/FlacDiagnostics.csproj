@@ -20,7 +20,7 @@
     <!-- The library under test, from source. -->
     <ProjectReference Include="..\..\src\CodeBrix.Audio.FlacWriter\CodeBrix.Audio.FlacWriter.csproj" />
     <!-- The ONLY audio natives package: device output and the playback path. -->
-    <PackageReference Include="CodeBrix.Audio.Android.ApacheLicenseForever" Version="1.0.271.1201" />
+    <PackageReference Include="CodeBrix.Audio.Android.ApacheLicenseForever" Version="1.0.283.1398" />
   </ItemGroup>
   <!-- A ProjectReference does NOT carry the library's runtimes/<rid>/native/ files into the APK (they are pack-only
        items in the library csproj; only a PackageReference to the .nupkg delivers them). Name the two Android

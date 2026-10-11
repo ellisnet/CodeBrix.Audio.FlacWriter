@@ -20,7 +20,7 @@
 
   <ItemGroup>
     <!-- The same Core pin as the library csproj (it supplies the managed FLAC DECODER the round-trip tests use); raise both together. -->
-    <PackageReference Include="CodeBrix.Audio.Core.MitLicenseForever" Version="1.0.271.1165" />
+    <PackageReference Include="CodeBrix.Audio.Core.MitLicenseForever" Version="1.0.283.1382" />
   </ItemGroup>
 
   <!--
