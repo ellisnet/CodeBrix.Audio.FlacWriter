@@ -15,8 +15,10 @@
 #   codesign ordering, size measured after signing, the deployment-target stamp CHECKED rather
 #   than reported, LC_UUID equal in the stripped and unstripped files - is unchanged.
 #
-#   NOT YET RUN (2026-10-10). If something breaks on the Mac, fix it IN THE SCRIPT and record it
-#   in ../BUILD-PROVENANCE.txt.
+#   FIRST RUN for FLAC 2026-10-11 UTC (2026-10-10 evening, local) on the same Mac, Rosetta 2 now
+#   installed: both architecture scripts ran UNCHANGED, passed the complete gate (118-check smoke
+#   test included) and adopted - see ../BUILD-PROVENANCE.txt. If something breaks on another
+#   machine, fix it IN THE SCRIPT and record it there.
 #
 # Everything it needs is in this repository: ../flac (the unmodified Xiph flac-1.5.0 release
 # tree), ../shim (the codebrix_flac shim + its CMakeLists.txt), ../patches (empty),

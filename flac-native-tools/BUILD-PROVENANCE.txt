@@ -385,13 +385,36 @@ macOS (the two osx-* entries)
   Scripts         : copies of CodeBrix.Audio.Vorbis's macOS scripts (which ran
                     UNCHANGED and successfully on Jeremy's Apple Silicon Mac on
                     2026-10-10; osx-x64 verified under Rosetta 2), adapted to
-                    FLAC. NOT YET RUN for FLAC.
-  Expected        : the Vorbis run's reproducibility finding applies here too:
-                    ld derives LC_UUID from output that includes the N_OSO stabs'
+                    FLAC.
+  Build host      : Jeremy's Apple Silicon Mac - macOS 27.0.1 (26A434, arm64),
+                    Xcode 27.0 (27A266a) at /Volumes/VideoWork/Applications/
+                    Xcode.app, Apple clang 21.0.0 (clang-2100.3.34.2), ld
+                    PROJECT:ld-27037.1, macOS 27.0 SDK, cmake 4.4.3 (Homebrew),
+                    GNU Make 3.81, /bin/bash 3.2.57, Rosetta 2 installed
+                    (2026-10-10). ffmpeg + ffprobe (Homebrew) on PATH, so the
+                    managed tests' ffmpeg cross-checks ran rather than skipped.
+  First run       : 2026-10-11 04:47 UTC (the evening of 2026-10-10, local).
+                    Both scripts configured, built and passed the COMPLETE gate
+                    UNCHANGED on the first attempt - nothing in build-common.sh,
+                    either architecture script, shim/CMakeLists.txt or
+                    smoke-test.c needed a fix. flac's own CMake ran cleanly under
+                    add_subdirectory with CMAKE_OSX_ARCHITECTURES set: its CPU
+                    detection (cmake/CheckCPUArch.cmake) is a try_compile of
+                    the TARGET's predefined macros, so the x86_64 CROSS build
+                    correctly got FLAC__CPU_X86_64 + FLAC__HAS_X86INTRIN +
+                    WITH_AVX (runtime-detected SSE/AVX paths) and the arm64
+                    build FLAC__CPU_ARM64 + FLAC__HAS_A64NEONINTRIN, exactly as
+                    native builds would. 0 warnings in either build, libFLAC's
+                    included; 0 weak imports; both deployment floors stamped
+                    exactly (LC_BUILD_VERSION minos 11.0 / 10.14).
+  Reproducibility : not re-measured for FLAC; the Vorbis finding applies: ld
+                    derives LC_UUID from output that includes the N_OSO stabs'
                     .o timestamps, so two builds of the same source ship the same
                     code under different LC_UUIDs (and signatures) - the sha256
-                    identifies ONE build, not the source. See CodeBrix.Audio.
-                    Vorbis's BUILD-PROVENANCE.txt, macOS section.
+                    values below identify ONE build, not the source. ld's
+                    -reproducible option fixes it (tested on this Mac for Vorbis)
+                    and is NOT used here yet - a family-wide decision. See
+                    CodeBrix.Audio.Vorbis's BUILD-PROVENANCE.txt, macOS section.
   Gate            : thin Mach-O of the right arch (file + lipo), exact exports
                     (nm -gU), install name @rpath/libcodebrix_flac.dylib,
                     system-only dependencies, no LC_RPATH, deployment target
@@ -399,16 +422,76 @@ macOS (the two osx-* entries)
                     licence exact, LC_UUID equal stripped/unstripped, smoke test.
 
 ================================================================================
-osx-arm64                                     NOT YET BUILT - Jeremy builds on macOS
+osx-arm64                                                         BUILT + PASSED
 ================================================================================
-  cd flac-native-tools/macos && ./build-osx-arm64.sh
-  then replace this block from output/osx-arm64/BUILD-INFO.txt.
+Built            : 2026-10-11 04:47:13 UTC (15 s)
+Built by         : macos/build-osx-arm64.sh (route: native, Apple Silicon)
+Build host       : the Apple Silicon Mac above (macOS 27.0.1, arm64)
+Compiler / SDK   : Apple clang version 21.0.0 (clang-2100.3.34.2) / macOS 27.0 SDK
+                   (Xcode 27.0, 27A266a)
+cmake            : 4.4.3, generator "Unix Makefiles", CMAKE_OSX_ARCHITECTURES=arm64,
+                   CMAKE_OSX_DEPLOYMENT_TARGET=11.0, CMAKE_BUILD_TYPE=Release,
+                   CBF_BUILD_SMOKE_TEST=ON
+libFLAC config   : FLAC__CPU_ARM64=1 FLAC__HAS_A64NEONINTRIN=1 FLAC__HAS_NEONINTRIN=1
+                   (no x86 intrinsics); BUILD_SHARED_LIBS=OFF ENABLE_64_BIT_WORDS=ON
+                   ENABLE_MULTITHREADING=OFF WITH_ASM=ON WITH_OGG=OFF
+File             : libcodebrix_flac.dylib - Mach-O 64-bit arm64, thin (lipo: non-fat);
+                   install name @rpath/libcodebrix_flac.dylib; no LC_RPATH
+Minimum macOS    : 11.0 (checked: LC_BUILD_VERSION minos 11.0; 0 -Wunguarded-availability
+                   warnings; 0 weak imports)
+Size (signed)    : 234240 bytes (strip -x, then codesign --sign -; signature valid)
+SHA256           : 988502f6c48217973711c3c2245b2f555effa3f7a5d16026526879740a7635aa
+LC_UUID          : 768C1984-7AEA-30F1-8144-26DB3C83844A (equal in the stripped and the
+                   unstripped file)
+Unstripped       : 288536 bytes -> unstripped/osx-arm64/libcodebrix_flac.dylib
+                   sha256 1f394efd9c834348ff2d10a74a7157a098f2588b9100a0bc3629f550d3a7f06e
+Exports          : exactly the 23 codebrix_flac_* functions
+Dependencies     : /usr/lib/libSystem.B.dylib only
+Build warnings   : 0 (shim + smoke test 0; libFLAC 0)
+Smoke test       : PASSED on the build host (118 checks, SMOKE TEST PASSED, exit 0;
+                   libFLAC decoder sample-exact, MD5 checked)
+Managed proof    : dotnet test (xUnit v3, 140 tests, 0 skipped - ffmpeg/ffprobe present;
+                   .NET SDK 10.0.401, arm64) passed on the build host against this exact
+                   file (sha256 above - the copy in the test output was checked, and no
+                   stray dylib sat in the test bin root), loaded through the library's own
+                   resolver from runtimes/osx-arm64/native/, 2026-10-11 UTC
 
 ================================================================================
-osx-x64                                       NOT YET BUILT - Jeremy builds on macOS
+osx-x64                                                           BUILT + PASSED
 ================================================================================
-  cd flac-native-tools/macos && ./build-osx-x64.sh     (Rosetta 2 to verify on Apple Silicon)
-  then replace this block from output/osx-x64/BUILD-INFO.txt.
+Built            : 2026-10-11 04:47:47 UTC (7 s)
+Built by         : macos/build-osx-x64.sh (route: cross-compiled on arm64 via
+                   CMAKE_OSX_ARCHITECTURES=x86_64, verified under Rosetta 2)
+Build host       : the Apple Silicon Mac above (macOS 27.0.1, arm64)
+Compiler / SDK   : Apple clang version 21.0.0 (clang-2100.3.34.2) / macOS 27.0 SDK
+                   (Xcode 27.0, 27A266a)
+cmake            : 4.4.3, generator "Unix Makefiles", CMAKE_OSX_ARCHITECTURES=x86_64,
+                   CMAKE_OSX_DEPLOYMENT_TARGET=10.14, CMAKE_BUILD_TYPE=Release,
+                   CBF_BUILD_SMOKE_TEST=ON
+libFLAC config   : FLAC__CPU_X86_64=1 FLAC__HAS_X86INTRIN=1 WITH_AVX=ON (SSE/AVX paths with
+                   runtime CPU detection; no NEON); BUILD_SHARED_LIBS=OFF
+                   ENABLE_64_BIT_WORDS=ON ENABLE_MULTITHREADING=OFF WITH_ASM=ON WITH_OGG=OFF
+File             : libcodebrix_flac.dylib - Mach-O 64-bit x86_64, thin (lipo: non-fat);
+                   install name @rpath/libcodebrix_flac.dylib; no LC_RPATH
+Minimum macOS    : 10.14 (checked: LC_BUILD_VERSION minos 10.14; 0 -Wunguarded-availability
+                   warnings; 0 weak imports)
+Size (signed)    : 244288 bytes (strip -x, then codesign --sign -; signature valid)
+SHA256           : 9a6fa72e89481d0c8dbd956c422e14af0a680998d8581480edca4f325ed6ace2
+LC_UUID          : 7429FD78-E87F-3720-904B-CD95C587D962 (equal in the stripped and the
+                   unstripped file)
+Unstripped       : 299200 bytes -> unstripped/osx-x64/libcodebrix_flac.dylib
+                   sha256 fb11ba6168dfd8fa57d20e16113aec3c2a78b3f22971dbd45bbe6b0e8d89ba71
+Exports          : exactly the 23 codebrix_flac_* functions
+Dependencies     : /usr/lib/libSystem.B.dylib only
+Build warnings   : 0 (shim + smoke test 0; libFLAC 0)
+Smoke test       : PASSED on the build host under Rosetta 2 (118 checks, SMOKE TEST PASSED,
+                   exit 0): the x86_64 smoke-test program (its own static x86_64 libFLAC as
+                   the verifying decoder) and the staged dylib both ran translated, so
+                   libFLAC's runtime SSE/AVX detection saw Rosetta's CPU feature set, not
+                   an Intel Mac's
+Managed proof    : NOT RUN - this Mac has only the arm64 .NET SDK, which cannot load an
+                   x86_64 dylib. An x64 .NET 10 SDK under Rosetta 2, or an Intel Mac, would
+                   give the equivalent of the osx-arm64 line.
 
 Host build (NOT shipped)
 --------------------------------------------------------------------------------

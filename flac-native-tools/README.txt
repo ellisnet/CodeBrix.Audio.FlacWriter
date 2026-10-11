@@ -70,9 +70,9 @@ WHAT BUILDS WHERE
   win-x64        windows/build-win-x64.ps1       x64 Windows + VS C++    built (Jeremy's x64 box)
   win-arm64      windows/build-win-arm64.ps1     ARM64 Windows (or x64,  cross-built there;
                                                  cross; smoke test unrun) smoke test UNRUN
-  osx-arm64      macos/build-osx-arm64.sh        Apple Silicon Mac       NOT YET BUILT (Jeremy)
-  osx-x64        macos/build-osx-x64.sh          Intel Mac, or Apple     NOT YET BUILT (Jeremy)
-                                                 Silicon + Rosetta 2
+  osx-arm64      macos/build-osx-arm64.sh        Apple Silicon Mac       built (Jeremy's Apple Silicon Mac)
+  osx-x64        macos/build-osx-x64.sh          Intel Mac, or Apple     built there (cross, verified
+                                                 Silicon + Rosetta 2     under Rosetta 2)
   (host)         build-host.sh                   this Linux dev box      NOT shipped
 
 The Windows and macOS scripts were written on Linux on 2026-10-10 as copies of
@@ -85,8 +85,11 @@ machine and ran unchanged; the one fix was in smoke-test.c (a local variable
 named `small`, which a Windows header #defines - see BUILD-PROVENANCE.txt).
 win-arm64 was cross-built there with -AdoptCrossBuild, so its smoke test is
 still UNRUN - finish it on an ARM64 Windows device (Surface Pro X) as
-build-win-arm64.ps1's header describes. The macOS scripts have NOT been run for
-FLAC yet. They all gate themselves exactly as the Vorbis ones do; if one breaks,
+build-win-arm64.ps1's header describes. The macOS scripts first ran for FLAC on
+2026-10-11 UTC (the evening of 2026-10-10, local) on Jeremy's Apple Silicon Mac
+(macOS 27.0.1, Xcode 27.0, cmake 4.4.3, Rosetta 2 installed): both ran
+UNCHANGED, passed the complete gate and were adopted, so all nine RIDs are now
+built. They all gate themselves exactly as the Vorbis ones do; if one breaks,
 fix it in the script and record it in BUILD-PROVENANCE.txt.
 
 HOW TO REBUILD
