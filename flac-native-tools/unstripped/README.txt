@@ -46,4 +46,6 @@ STORED SO FAR (build-ids verified equal to the shipped twins by the gates, 2026-
   win-x64        {8F098C49-041F-48F3-A6FD-02DEB3FFA3D8} age 1
   win-arm64      {3A9BCA01-50F6-4679-B267-1DEF16CB9A66} age 1
 
-  osx-x64, osx-arm64: not yet built (Jeremy's Mac).
+  (LC_UUIDs, equal in the shipped dylibs and these twins, 2026-10-11)
+  osx-arm64      768C1984-7AEA-30F1-8144-26DB3C83844A
+  osx-x64        7429FD78-E87F-3720-904B-CD95C587D962
